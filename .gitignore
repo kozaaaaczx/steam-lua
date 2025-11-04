@@ -1,0 +1,25 @@
+# Binaries
+*.exe
+*.dll
+*.pdb
+
+# Packages and modules cache
+*.nupkg
+.nuget/
+packages/
+
+# Logs and temp
+*.log
+*.tmp
+~$*
+
+# PowerShell backup
+*.ps1~
+
+# VS Code workspace
+.vscode/
+
+# PS2EXE temp artifacts
+*.cs
+*.res
+*.resources
