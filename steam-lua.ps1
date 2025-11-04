@@ -43,7 +43,7 @@ function Get-SteamExePath {
         if (Test-Path $p) { return $p }
     }
 
-    throw "Nie znaleziono pliku steam.exe. Zainstaluj Steam lub podaj ścieżkę ręcznie."
+    throw "steam.exe not found. Install Steam or provide the path manually."
 }
 
 function Stop-SteamGracefully {
@@ -52,7 +52,7 @@ function Stop-SteamGracefully {
     )
     $steamExe = Get-SteamExePath
 
-    Write-Host "Zamykanie Steam (grzecznie)..." -ForegroundColor Cyan
+    Write-Host "Closing Steam (gracefully)..." -ForegroundColor Cyan
     try { & $steamExe -shutdown | Out-Null } catch { }
 
     $deadline = (Get-Date).AddSeconds($WaitSeconds)
@@ -63,7 +63,7 @@ function Stop-SteamGracefully {
 
     $procs = Get-Process -Name steam, steamwebhelper, SteamService, SteamBootstrapper -ErrorAction SilentlyContinue
     if ($procs) {
-        Write-Host "Wymuszanie zamknięcia pozostałych procesów Steam..." -ForegroundColor Yellow
+        Write-Host "Forcing remaining Steam processes to exit..." -ForegroundColor Yellow
         foreach ($p in $procs) {
             try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch { }
         }
@@ -72,22 +72,22 @@ function Stop-SteamGracefully {
 
 function Start-Steam {
     $steamExe = Get-SteamExePath
-    Write-Host "Uruchamianie Steam..." -ForegroundColor Green
+    Write-Host "Starting Steam..." -ForegroundColor Green
     Start-Process -FilePath $steamExe -ErrorAction Stop | Out-Null
 }
 
 function Restart-Steam {
     Stop-SteamGracefully -WaitSeconds 12
     Start-Steam
-    Write-Host "Steam został zrestartowany." -ForegroundColor Green
+    Write-Host "Steam has been restarted." -ForegroundColor Green
 }
 
-# Wykonuj akcję tylko przy bezpośrednim uruchomieniu skryptu (nie przy dot-sourcowaniu w GUI)
+# Execute action only when script is run directly (not when dot-sourced in GUI)
 if ($MyInvocation.InvocationName -ne '.') {
     switch ($Action) {
         'Stop'    { Stop-SteamGracefully; break }
         'Start'   { Start-Steam; break }
         'Restart' { Restart-Steam; break }
-        default   { throw "Nieznana akcja: $Action" }
+        default   { throw "Unknown action: $Action" }
     }
 }
