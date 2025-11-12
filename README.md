@@ -32,6 +32,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -STA -File ".\steam-lua-gui.ps1"
 ```
 Run PowerShell as Administrator if you plan to import files to Program Files.
 
+### What each button does
+- **Start**: launches Steam if it is not running.
+- **Stop**: tries graceful shutdown, then force-closes leftover Steam processes after ~12s.
+- **Restart**: Stop → Start.
+- **Import**: copies selected files to Steam folders (requires Administrator):
+  - Select one or more `.manifest` files → copies to `C:\Program Files (x86)\Steam\depotcache`.
+  - Then select one or more `.lua` files → copies to `C:\Program Files (x86)\Steam\config\stplug-in`.
+  - The log panel shows progress and errors.
+
 ## Troubleshooting / AV
 - Windows SmartScreen: click “More info” → “Run anyway”.
 - Some antivirus tools may flag unsigned PS2EXE binaries as suspicious. This is a false positive for this project. Options:
