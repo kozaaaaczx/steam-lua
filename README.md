@@ -13,6 +13,12 @@ A simple tool to manage Steam and import manifest/lua files.
 - Latest release (portable EXE):
   - https://github.com/kozaaaaczx/steam-lua/releases
 
+## Screenshots
+Add screenshots (place images in a `assets/` folder and reference here):
+```
+![Main window](assets/main.png)
+```
+
 ## Requirements
 - Windows with PowerShell 5.1+
 - Administrator privileges (the EXE requests admin at launch)
@@ -28,6 +34,14 @@ A simple tool to manage Steam and import manifest/lua files.
 powershell -NoProfile -ExecutionPolicy Bypass -STA -File ".\steam-lua-gui.ps1"
 ```
 Run PowerShell as Administrator if you plan to import files to Program Files.
+
+## Troubleshooting / AV
+- Windows SmartScreen: click “More info” → “Run anyway”.
+- Some antivirus tools may flag unsigned PS2EXE binaries as suspicious. This is a false positive for this project. Options:
+  - Prefer running the open-source scripts (`steam-lua-gui.ps1`).
+  - Build the EXE yourself from source (see below).
+  - Submit a false-positive report to your AV vendor with the GitHub link.
+- Ensure you run as Administrator to copy into Program Files paths.
 
 ## Build EXE (for maintainers)
 Requires the `ps2exe` module (one-time install):
