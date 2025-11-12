@@ -14,7 +14,7 @@ A simple tool to manage Steam and import manifest/lua files.
   - https://github.com/kozaaaaczx/steam-lua/releases
 
 ## Screenshots
-![Main window](assets/main.png)
+![Main window](https://raw.githubusercontent.com/kozaaaaczx/steam-lua/main/assets/main.png)
 
 ## Requirements
 - Windows with PowerShell 5.1+
