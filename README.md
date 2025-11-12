@@ -1,3 +1,5 @@
+![Demo](https://raw.githubusercontent.com/kozaaaaczx/steam-lua/main/assets/maingif.gif)
+
 # Steam Lua
 
 A simple tool to manage Steam and import manifest/lua files.
