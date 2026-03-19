@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # Steam functions (embedded so the EXE is self-contained)
-$script:AppVersion = '0.3.0'
+$script:AppVersion = '0.3.1'
 $script:SteamExeOverride = $null
 
 function Get-SteamExePath {
@@ -346,6 +346,27 @@ function Update-SteamStatus {
 
 $timerStatus.Add_Tick({ Update-SteamStatus })
 
+function Check-ForUpdates {
+    try {
+        # Check GitHub API for latest release
+        $url = "https://api.github.com/repos/kozaaaaczx/steam-lua/releases/latest"
+        $latest = Invoke-RestMethod -Uri $url -ErrorAction SilentlyContinue
+        if ($null -ne $latest.tag_name) {
+            $latestVerStr = $latest.tag_name -replace 'v', ''
+            if ([version]$latestVerStr -gt [version]$script:AppVersion) {
+                # Use Invoke to show UI from potential background thread if needed, 
+                # but here we'll call it when form is ready.
+                $title = "SteamShell - Update Available"
+                $msg = "A new version (v$latestVerStr) is available!`n`nYour version: v$script:AppVersion`n`nWould you like to install the update now?"
+                $result = [System.Windows.Forms.MessageBox]::Show($msg, $title, [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Question)
+                if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+                    Start-Process "https://github.com/kozaaaaczx/steam-lua/releases/latest"
+                }
+            }
+        }
+    } catch { }
+}
+
 # Logic
 function Set-UiBusy($busy) {
     foreach ($ctrl in @($btnStart, $btnStop, $btnRestart, $btnKill, $btnImport)) { $ctrl.Enabled = -not $busy }
@@ -479,7 +500,7 @@ $btnOpenDepot.Add_Click({ Open-Folder -path 'C:\Program Files (x86)\Steam\depotc
 $btnOpenLua.Add_Click({ Open-Folder -path 'C:\Program Files (x86)\Steam\config\stplug-in' -label 'stplug-in' })
 $btnRevealConfig.Add_Click({ Open-Folder -path 'C:\Program Files (x86)\Steam\config' -label 'config' })
 $btnClearLog.Add_Click({ $rtbLog.Clear() })
-$btnAlwaysOnTop.Add_CheckedChanged({ ${form}.TopMost = $chkAlwaysOnTop.Checked })
+$chkAlwaysOnTop.Add_CheckedChanged({ ${form}.TopMost = $chkAlwaysOnTop.Checked })
 $btnAbout.Add_Click({
     $msg = "SteamShell v$script:AppVersion`n`nNew Features in v0.3.0:`n- Steam Status Monitor`n- Backup before Import`n- Kill All processes`n- Stability improvements`n`nGitHub: https://github.com/kozaaaaczx/steam-lua"
     [System.Windows.Forms.MessageBox]::Show($msg, 'About SteamShell', 0, 64) | Out-Null
@@ -489,5 +510,14 @@ $btnAbout.Add_Click({
 Update-SteamPathLabel
 Update-SteamStatus
 $timerStatus.Start()
+
+# Delayed update check (2 seconds after start)
+$timerUpdate = New-Object System.Windows.Forms.Timer
+$timerUpdate.Interval = 2000
+$timerUpdate.Add_Tick({
+    $timerUpdate.Stop()
+    Check-ForUpdates
+})
+$timerUpdate.Start()
 
 [void]${form}.ShowDialog()
