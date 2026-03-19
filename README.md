@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-0.4.1-blue?style=for-the-badge&logo=powerpc&logoColor=white" alt="Version">
+  <img src="https://img.shields.io/badge/Version-0.5.0-blue?style=for-the-badge&logo=powerpc&logoColor=white" alt="Version">
   <img src="https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Language-PowerShell-5391FE?style=for-the-badge&logo=powershell&logoColor=white" alt="Language">
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License">
