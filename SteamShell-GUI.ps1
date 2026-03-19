@@ -1,226 +1,410 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# SteamShell v0.5.0 - Modern Rebirth
-$script:AppVersion = '0.5.0'
+$script:AppVersion = '0.5.1'
 $script:SteamExeOverride = $null
 
+# Core Steam Functions
 function Get-SteamExePath {
     if ($script:SteamExeOverride -and (Test-Path $script:SteamExeOverride)) { return $script:SteamExeOverride }
     try {
-        $regPaths = @('HKCU:\Software\Valve\Steam', 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam', 'HKLM:\SOFTWARE\Valve\Steam')
-        foreach ($rp in $regPaths) {
+        foreach ($rp in @('HKCU:\Software\Valve\Steam','HKLM:\SOFTWARE\WOW6432Node\Valve\Steam','HKLM:\SOFTWARE\Valve\Steam')) {
             if (Test-Path $rp) {
                 $k = Get-ItemProperty -Path $rp -ErrorAction SilentlyContinue
-                foreach ($name in @('SteamExe', 'SteamPath', 'InstallPath')) {
-                    if ($null -ne $k.$name -and [string]::IsNullOrWhiteSpace($k.$name) -eq $false) {
-                        $candidate = $k.$name
-                        if ($candidate -like '*.exe') { if (Test-Path $candidate) { return $candidate } }
-                        else { $exe = Join-Path $candidate 'steam.exe'; if (Test-Path $exe) { return $exe } }
+                foreach ($n in @('SteamExe','SteamPath','InstallPath')) {
+                    if ($k.$n -and -not [string]::IsNullOrWhiteSpace($k.$n)) {
+                        if ($k.$n -like '*.exe') { if (Test-Path $k.$n) { return $k.$n } }
+                        else { $exe = Join-Path $k.$n 'steam.exe'; if (Test-Path $exe) { return $exe } }
                     }
                 }
             }
         }
-    } catch { }
-    $defaults = @("$env:ProgramFiles (x86)\Steam\steam.exe", "$env:ProgramFiles\Steam\steam.exe", "$env:LOCALAPPDATA\Programs\Steam\steam.exe")
-    foreach ($p in $defaults) { if (Test-Path $p) { return $p } }
+    } catch {}
+    foreach ($p in @("$env:ProgramFiles (x86)\Steam\steam.exe","$env:ProgramFiles\Steam\steam.exe")) { if (Test-Path $p) { return $p } }
     throw "steam.exe not found."
 }
-
-function Get-SteamInstallDir { try { $p = Get-SteamExePath; Split-Path -Path $p -Parent } catch { return $null } }
-
-function Stop-SteamGracefully {
-    param([int]$WaitSeconds = 12, [bool]$ForceClose = $true)
-    $steamExe = Get-SteamExePath
-    try { & $steamExe -shutdown | Out-Null } catch { }
-    $deadline = (Get-Date).AddSeconds($WaitSeconds)
-    do { Start-Sleep -Milliseconds 300; $procs = Get-Process -Name steam, steamwebhelper, SteamService -ErrorAction SilentlyContinue } while ($procs -and (Get-Date) -lt $deadline)
-    if ($ForceClose) { $procs = Get-Process -Name steam, steamwebhelper, SteamService -ErrorAction SilentlyContinue; if ($procs) { foreach ($p in $procs) { try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch { } } } }
+function Get-SteamInstallDir { try { Split-Path (Get-SteamExePath) -Parent } catch { $null } }
+function Stop-SteamGracefully([int]$Wait=12) {
+    try { & (Get-SteamExePath) -shutdown | Out-Null } catch {}
+    $end = (Get-Date).AddSeconds($Wait)
+    do { Start-Sleep -Milliseconds 400; $pr = Get-Process steam,steamwebhelper,SteamService -ErrorAction SilentlyContinue } while ($pr -and (Get-Date) -lt $end)
+    Get-Process steam,steamwebhelper,SteamService -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
-
-function Start-Steam { $steamExe = Get-SteamExePath; Start-Process -FilePath $steamExe -ErrorAction Stop | Out-Null }
-function Restart-Steam { Stop-SteamGracefully -WaitSeconds 12 -ForceClose $true; Start-Steam }
-
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-
-function Add-Log {
-    param([System.Windows.Forms.TextBoxBase]$TextBox, [string]$Message)
-    $timestamp = (Get-Date).ToString('HH:mm:ss')
-    $TextBox.Invoke([action]{ $TextBox.AppendText("[$timestamp] $Message`r`n") })
-}
-
-# UI - MODERN STYLE (v0.5.0)
-$colorBg = [System.Drawing.Color]::FromArgb(23, 26, 33)
-$colorPanel = [System.Drawing.Color]::FromArgb(27, 40, 56)
-$colorAccent = [System.Drawing.Color]::FromArgb(102, 192, 244)
-$colorText = [System.Drawing.Color]::FromArgb(199, 213, 224)
-$colorBorder = [System.Drawing.Color]::FromArgb(42, 71, 94)
-$colorSuccess = [System.Drawing.Color]::FromArgb(163, 207, 6)
-$colorError = [System.Drawing.Color]::FromArgb(205, 92, 92)
-
-${form} = New-Object System.Windows.Forms.Form
-${form}.Text = "SteamShell v$script:AppVersion"
-${form}.Size = New-Object System.Drawing.Size(1060, 680)
-${form}.StartPosition = 'CenterScreen'
-${form}.BackColor = $colorBg
-${form}.ForeColor = $colorText
-${form}.Font = New-Object System.Drawing.Font('Segoe UI', 10)
-${form}.AllowDrop = $true
-
-function New-SteamButton([string]$text, $color = $null) {
-    $b = New-Object System.Windows.Forms.Button
-    $b.Text = $text; $b.FlatStyle = 'Flat'; $b.Height = 42; $b.Dock = 'Fill'; $b.Margin = New-Object System.Windows.Forms.Padding(4)
-    $b.BackColor = if ($color) { $color } else { [System.Drawing.Color]::FromArgb(42, 71, 94) }
-    $b.ForeColor = if ($color) { [System.Drawing.Color]::Black } else { [System.Drawing.Color]::White }
-    $b.FlatAppearance.BorderSize = 0; $b.Cursor = 'Hand'
-    return $b
-}
-
-# Layout
-$mainPanel = New-Object System.Windows.Forms.TableLayoutPanel
-$mainPanel.Dock = 'Fill'; $mainPanel.ColumnCount = 2; $mainPanel.RowCount = 2
-$mainPanel.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 72))) | Out-Null
-$mainPanel.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 28))) | Out-Null
-$mainPanel.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 64))) | Out-Null
-$mainPanel.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100))) | Out-Null
-
-# Top Header
-$header = New-Object System.Windows.Forms.TableLayoutPanel
-$header.Dock = 'Fill'; $header.ColumnCount = 5; $header.BackColor = $colorPanel; $header.Padding = New-Object System.Windows.Forms.Padding(10)
-for($i=0; $i -lt 5; $i++){ $header.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 20))) | Out-Null }
-
-$btnStart = New-SteamButton 'START' $colorSuccess; $btnStop = New-SteamButton 'STOP' $colorError
-$btnRestart = New-SteamButton 'RESTART'; $btnKill = New-SteamButton 'KILL ALL'; $btnImport = New-SteamButton 'IMPORT' $colorAccent
-$header.Controls.AddRange(@($btnStart, $btnStop, $btnRestart, $btnKill, $btnImport))
-
-# Console
-$rtbLog = New-Object System.Windows.Forms.RichTextBox
-$rtbLog.Dock = 'Fill'; $rtbLog.BackColor = [System.Drawing.Color]::FromArgb(15, 15, 20); $rtbLog.ForeColor = [System.Drawing.Color]::FromArgb(163, 207, 6)
-$rtbLog.ReadOnly = $true; $rtbLog.BorderStyle = 'None'; $rtbLog.Font = New-Object System.Drawing.Font('Consolas', 10); $rtbLog.Margin = New-Object System.Windows.Forms.Padding(15)
-
-# Sidebar
-$sidebar = New-Object System.Windows.Forms.FlowLayoutPanel
-$sidebar.Dock = 'Fill'; $sidebar.FlowDirection = 'TopDown'; $sidebar.WrapContents = $false; $sidebar.Padding = New-Object System.Windows.Forms.Padding(10); $sidebar.BackColor = $colorPanel
-
-function New-Group([string]$title, [int]$height) {
-    $g = New-Object System.Windows.Forms.GroupBox; $g.Text = $title; $g.ForeColor = $colorAccent; $g.Width = 260; $g.Height = $height; $g.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 15); return $g
-}
-
-$gAcc = New-Group "👤 STEAM ACCOUNTS" 130
-$comboAccounts = New-Object System.Windows.Forms.ComboBox; $comboAccounts.Dock = 'Top'; $comboAccounts.DropDownStyle = 'DropDownList'; $comboAccounts.BackColor = $colorBg; $comboAccounts.ForeColor = [System.Drawing.Color]::White; $comboAccounts.FlatStyle = 'Flat'
-$btnSwitchAcc = New-SteamButton 'SWITCH ACCOUNT'; $btnSwitchAcc.Dock = 'Bottom'; $btnSwitchAcc.Height = 35
-$gAcc.Controls.AddRange(@($comboAccounts, $btnSwitchAcc))
-
-$gOpt = New-Group "⚙️ OPTIONS" 170
-$chkBackup = New-Object System.Windows.Forms.CheckBox; $chkBackup.Text = 'Backup files'; $chkBackup.Checked = $true; $chkBackup.Dock = 'Top'; $chkBackup.Height = 30
-$chkAlwaysOnTop = New-Object System.Windows.Forms.CheckBox; $chkAlwaysOnTop.Text = 'Always on top'; $chkAlwaysOnTop.Dock = 'Top'; $chkAlwaysOnTop.Height = 30
-$lblWait = New-Object System.Windows.Forms.Label; $lblWait.Text = "Wait time (s):"; $lblWait.Dock = 'Left'; $lblWait.Width = 90
-$numWait = New-Object System.Windows.Forms.NumericUpDown; $numWait.Minimum = 4; $numWait.Value = 12; $numWait.BackColor = $colorBg; $numWait.ForeColor = [System.Drawing.Color]::White; $numWait.Dock = 'Right'; $numWait.Width = 60
-$pnlWait = New-Object System.Windows.Forms.Panel; $pnlWait.Dock = 'Top'; $pnlWait.Height = 30; $pnlWait.Controls.AddRange(@($lblWait, $numWait))
-$gOpt.Controls.AddRange(@($chkBackup, $chkAlwaysOnTop, $pnlWait))
-
-$gQuick = New-Group "🛠️ QUICK ACCESS" 200
-$btnOpenDepot = New-SteamButton 'DEPOT FOLDER'; $btnOpenLua = New-SteamButton 'LUA FOLDER'
-$btnRevealConfig = New-SteamButton 'CONFIG FOLDER'; $btnAbout = New-SteamButton 'ABOUT'
-$layQuick = New-Object System.Windows.Forms.TableLayoutPanel; $layQuick.Dock = 'Fill'; $layQuick.ColumnCount = 1; $layQuick.RowCount = 4
-$layQuick.Controls.AddRange(@($btnOpenDepot, $btnOpenLua, $btnRevealConfig, $btnAbout))
-$gQuick.Controls.Add($layQuick)
-
-$sidebar.Controls.AddRange(@($gAcc, $gOpt, $gQuick))
-
-$statusStrip = New-Object System.Windows.Forms.StatusStrip; $statusStrip.BackColor = $colorBg; $statusStrip.ForeColor = [System.Drawing.Color]::Silver
-$statusLabel = New-Object System.Windows.Forms.ToolStripStatusLabel; $statusLabel.Text = "Ready • v$script:AppVersion"; $statusStrip.Items.Add($statusLabel) | Out-Null
-$statusSteam = New-Object System.Windows.Forms.ToolStripStatusLabel; $statusSteam.Alignment = 'Right'; $statusSteam.Text = "STEAM: CHECKING..."; $statusStrip.Items.Add($statusSteam) | Out-Null
-
-$mainPanel.Controls.Add($header, 0, 0); $mainPanel.SetColumnSpan($header, 2)
-$mainPanel.Controls.Add($rtbLog, 0, 1); $mainPanel.Controls.Add($sidebar, 1, 1)
-${form}.Controls.AddRange(@($mainPanel, $statusStrip))
-
-# Logic
+function Start-Steam { Start-Process (Get-SteamExePath) }
+function Restart-Steam { Stop-SteamGracefully; Start-Steam }
 function Get-SteamAccounts {
-    $accounts = @(); $steamDir = Get-SteamInstallDir; if ($null -eq $steamDir) { return $accounts }
-    $vdf = Join-Path $steamDir "config\loginusers.vdf"
-    if (Test-Path $vdf) {
-        $current = $null
-        foreach ($line in (Get-Content $vdf)) {
-            if ($line -match '^\s*"(\d+)"') { $current = [PSCustomObject]@{ id = $matches[1]; name = ""; persona = "" } }
-            elseif ($line -match '"AccountName"\s+"([^"]+)"' -and $current) { $current.name = $matches[1] }
-            elseif ($line -match '"PersonaName"\s+"([^"]+)"' -and $current) { $current.persona = $matches[1] }
-            elseif ($line -match '^\s*}' -and $current) { if ($current.name) { $accounts += $current }; $current = $null }
-        }
+    $accs = @(); $dir = Get-SteamInstallDir; if (!$dir) { return $accs }
+    $vdf = Join-Path $dir "config\loginusers.vdf"; if (!(Test-Path $vdf)) { return $accs }
+    $cur = $null
+    foreach ($l in (Get-Content $vdf)) {
+        if ($l -match '^\s*"(\d{5,})"') { $cur = [PSCustomObject]@{id=$matches[1];name="";persona=""} }
+        elseif ($cur -and $l -match '"AccountName"\s+"([^"]+)"') { $cur.name = $matches[1] }
+        elseif ($cur -and $l -match '"PersonaName"\s+"([^"]+)"') { $cur.persona = $matches[1] }
+        elseif ($cur -and $l -match '^\s*}') { if ($cur.name) { $accs += $cur }; $cur = $null }
     }
-    return $accounts
+    $accs
 }
 
-function Refresh-Accounts {
-    $comboAccounts.Items.Clear(); $script:AccList = Get-SteamAccounts
-    foreach ($a in $script:AccList) { $null = $comboAccounts.Items.Add("$($a.persona) ($($a.name))") }
-    if ($comboAccounts.Items.Count -gt 0) {
-        $comboAccounts.SelectedIndex = 0; $curr = (Get-ItemProperty "HKCU:\Software\Valve\Steam").AutoLoginUser
-        if ($curr) { for($i=0; $i -lt $script:AccList.Count; $i++) { if ($script:AccList[$i].name -eq $curr) { $comboAccounts.SelectedIndex = $i; break } } }
-    }
+# WPF UI
+Add-Type -AssemblyName PresentationFramework
+Add-Type -AssemblyName PresentationCore
+Add-Type -AssemblyName WindowsBase
+Add-Type -AssemblyName System.Windows.Forms
+
+[xml]$xaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SteamShell v$($script:AppVersion)" Width="1100" Height="720"
+        WindowStartupLocation="CenterScreen" AllowDrop="True"
+        Background="#0D1117" Foreground="#C9D1D9">
+  <Window.Resources>
+    <Style x:Key="CardBorder" TargetType="Border">
+      <Setter Property="Background" Value="#161B22"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="BorderBrush" Value="#21262D"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="18"/>
+      <Setter Property="Margin" Value="0,0,0,12"/>
+    </Style>
+    <Style x:Key="SectionTitle" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="#58A6FF"/>
+      <Setter Property="Margin" Value="0,0,0,12"/>
+    </Style>
+    <Style x:Key="Btn" TargetType="Button">
+      <Setter Property="Background" Value="#21262D"/>
+      <Setter Property="Foreground" Value="#C9D1D9"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="BorderBrush" Value="#30363D"/>
+      <Setter Property="Padding" Value="14,10"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Margin" Value="0,0,8,0"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="#30363D"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="#3A424A"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="GreenBtn" TargetType="Button" BasedOn="{StaticResource Btn}">
+      <Setter Property="Background" Value="#238636"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="BorderBrush" Value="#2EA043"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="#2EA043"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="RedBtn" TargetType="Button" BasedOn="{StaticResource Btn}">
+      <Setter Property="Background" Value="#DA3633"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="BorderBrush" Value="#F85149"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="#F85149"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="BlueBtn" TargetType="Button" BasedOn="{StaticResource Btn}">
+      <Setter Property="Background" Value="#1F6FEB"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="BorderBrush" Value="#388BFD"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="#388BFD"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="SideBtn" TargetType="Button" BasedOn="{StaticResource Btn}">
+      <Setter Property="Margin" Value="0,0,0,6"/>
+      <Setter Property="Padding" Value="12,10"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="#30363D"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Header -->
+    <Border Grid.Row="0" Background="#161B22" Padding="16,14" BorderBrush="#21262D" BorderThickness="0,0,0,1">
+      <Grid>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+          <TextBlock Text="&#x25B6;" FontSize="18" Foreground="#58A6FF" VerticalAlignment="Center" Margin="0,0,10,0"/>
+          <TextBlock Text="SteamShell" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+          <TextBlock Text="v$($script:AppVersion)" FontSize="11" Foreground="#484F58" VerticalAlignment="Center" Margin="8,3,0,0"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button x:Name="btnStart" Content="&#x25B6; Start" Style="{StaticResource GreenBtn}" Width="110"/>
+          <Button x:Name="btnStop" Content="&#x23F9; Stop" Style="{StaticResource RedBtn}" Width="110"/>
+          <Button x:Name="btnRestart" Content="&#x21BB; Restart" Style="{StaticResource Btn}" Width="110"/>
+          <Button x:Name="btnKill" Content="&#x2716; Kill All" Style="{StaticResource Btn}" Width="110"/>
+          <Button x:Name="btnImport" Content="&#x2B06; Import" Style="{StaticResource BlueBtn}" Width="110" Margin="0"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Content -->
+    <Grid Grid.Row="1" Margin="16">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="290"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- Log Terminal -->
+      <Border Grid.Column="0" Background="#010409" CornerRadius="10" BorderBrush="#21262D" BorderThickness="1" Margin="0,0,16,0" Padding="0">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+          <Border Background="#161B22" CornerRadius="10,10,0,0" Padding="14,8">
+            <Grid>
+              <TextBlock Text="&#x1F4C4; Console Output" Foreground="#8B949E" FontSize="12"/>
+              <Button x:Name="btnClear" Content="Clear" Style="{StaticResource Btn}" HorizontalAlignment="Right" Padding="10,4" FontSize="11"/>
+            </Grid>
+          </Border>
+          <TextBox Grid.Row="1" x:Name="txtLog" IsReadOnly="True" Background="Transparent" Foreground="#3FB950"
+                   FontFamily="Cascadia Code, Consolas, Courier New" FontSize="12" BorderThickness="0"
+                   VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" AcceptsReturn="True" Padding="14,10"
+                   CaretBrush="Transparent"/>
+        </Grid>
+      </Border>
+
+      <!-- Sidebar -->
+      <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <!-- Accounts Card -->
+          <Border Style="{StaticResource CardBorder}">
+            <StackPanel>
+              <TextBlock Text="&#x1F464; Steam Accounts" Style="{StaticResource SectionTitle}"/>
+              <ComboBox x:Name="cmbAccounts" Background="#0D1117" Foreground="White" FontSize="12" Padding="8,6" Margin="0,0,0,10"/>
+              <Button x:Name="btnSwitch" Content="&#x21C4; Switch Account" Style="{StaticResource BlueBtn}" Margin="0" Padding="12,10"/>
+            </StackPanel>
+          </Border>
+
+          <!-- Options Card -->
+          <Border Style="{StaticResource CardBorder}">
+            <StackPanel>
+              <TextBlock Text="&#x2699; Options" Style="{StaticResource SectionTitle}"/>
+              <CheckBox x:Name="chkBackup" Content="Backup before overwrite" IsChecked="True" Foreground="#C9D1D9" Margin="0,0,0,8"/>
+              <CheckBox x:Name="chkOnTop" Content="Always on top" Foreground="#C9D1D9" Margin="0,0,0,8"/>
+              <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                <TextBlock Text="Shutdown wait:" Foreground="#8B949E" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBox x:Name="txtWait" Text="12" Width="50" Background="#0D1117" Foreground="White" BorderBrush="#30363D" Padding="6,4" FontSize="12"/>
+                <TextBlock Text="sec" Foreground="#484F58" VerticalAlignment="Center" Margin="6,0,0,0"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- Quick Access Card -->
+          <Border Style="{StaticResource CardBorder}">
+            <StackPanel>
+              <TextBlock Text="&#x1F527; Quick Access" Style="{StaticResource SectionTitle}"/>
+              <Button x:Name="btnDepot"  Content="&#x1F4C1; Depot Cache Folder"  Style="{StaticResource SideBtn}"/>
+              <Button x:Name="btnLua"    Content="&#x1F4C1; Lua Scripts Folder"   Style="{StaticResource SideBtn}"/>
+              <Button x:Name="btnConfig" Content="&#x1F4C1; Steam Config Folder"  Style="{StaticResource SideBtn}"/>
+              <Button x:Name="btnBrowse" Content="&#x1F50D; Set Steam Path"       Style="{StaticResource SideBtn}"/>
+              <Button x:Name="btnAbout"  Content="&#x2139; About SteamShell"      Style="{StaticResource SideBtn}" Margin="0"/>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+
+    <!-- Status Bar -->
+    <Border Grid.Row="2" Background="#161B22" Padding="16,10" BorderBrush="#21262D" BorderThickness="0,1,0,0">
+      <Grid>
+        <TextBlock x:Name="statusLabel" Text="Ready" Foreground="#484F58" FontSize="12"/>
+        <TextBlock x:Name="statusSteam" Text="STEAM: CHECKING..." HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold"/>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
+"@
+
+$reader = New-Object System.Xml.XmlNodeReader $xaml
+$window = [System.Windows.Markup.XamlReader]::Load($reader)
+
+# Get Controls
+$btnStart    = $window.FindName("btnStart")
+$btnStop     = $window.FindName("btnStop")
+$btnRestart  = $window.FindName("btnRestart")
+$btnKill     = $window.FindName("btnKill")
+$btnImport   = $window.FindName("btnImport")
+$btnSwitch   = $window.FindName("btnSwitch")
+$btnClear    = $window.FindName("btnClear")
+$btnDepot    = $window.FindName("btnDepot")
+$btnLua      = $window.FindName("btnLua")
+$btnConfig   = $window.FindName("btnConfig")
+$btnBrowse   = $window.FindName("btnBrowse")
+$btnAbout    = $window.FindName("btnAbout")
+$cmbAccounts = $window.FindName("cmbAccounts")
+$chkBackup   = $window.FindName("chkBackup")
+$chkOnTop    = $window.FindName("chkOnTop")
+$txtWait     = $window.FindName("txtWait")
+$txtLog      = $window.FindName("txtLog")
+$statusLabel = $window.FindName("statusLabel")
+$statusSteam = $window.FindName("statusSteam")
+
+# Helpers
+function Write-Log([string]$msg) {
+    $ts = (Get-Date).ToString('HH:mm:ss')
+    $txtLog.AppendText("[$ts] $msg`r`n")
+    $txtLog.ScrollToEnd()
 }
 
-function Import-Files($ps) {
-    $dManifest = 'C:\Program Files (x86)\Steam\depotcache'; $dLua = 'C:\Program Files (x86)\Steam\config\stplug-in'
-    if (!(Test-Path $dManifest)) { New-Item $dManifest -ItemType Directory -Force | Out-Null }
-    if (!(Test-Path $dLua)) { New-Item $dLua -ItemType Directory -Force | Out-Null }
-    foreach ($p in $ps) {
-        $ext = [System.IO.Path]::GetExtension($p).ToLower(); $dstD = if ($ext -eq ".manifest") { $dManifest } elseif ($ext -eq ".lua") { $dLua }
-        if ($dstD) {
-            $dest = Join-Path $dstD ([System.IO.Path]::GetFileName($p))
-            if ($chkBackup.Checked -and (Test-Path $dest)) { Copy-Item $dest ($dest + ".bak") -Force }
-            Copy-Item -LiteralPath $p -Destination $dest -Force
-            Add-Log -TextBox $rtbLog -Message "Imported: $([System.IO.Path]::GetFileName($p))"
+function Import-Files($paths) {
+    $dM = 'C:\Program Files (x86)\Steam\depotcache'; $dL = 'C:\Program Files (x86)\Steam\config\stplug-in'
+    if (!(Test-Path $dM)) { New-Item $dM -ItemType Directory -Force | Out-Null }
+    if (!(Test-Path $dL)) { New-Item $dL -ItemType Directory -Force | Out-Null }
+    foreach ($p in $paths) {
+        $ext = [System.IO.Path]::GetExtension($p).ToLower()
+        $dst = if ($ext -eq '.manifest') { $dM } elseif ($ext -eq '.lua') { $dL } else { $null }
+        if ($dst) {
+            $target = Join-Path $dst ([System.IO.Path]::GetFileName($p))
+            if ($chkBackup.IsChecked -and (Test-Path $target)) { Copy-Item $target "$target.bak" -Force }
+            Copy-Item -LiteralPath $p -Destination $target -Force
+            Write-Log "Imported: $([System.IO.Path]::GetFileName($p))"
         }
     }
 }
 
-function Check-Updates {
-    try {
-        $l = Invoke-RestMethod "https://api.github.com/repos/kozaaaaczx/steam-lua/releases/latest" -ErrorAction SilentlyContinue
-        if ($l.tag_name -match '(\d+\.\d+\.\d+)') {
-            if ([version]$matches[1] -gt [version]$script:AppVersion) {
-                if ([System.Windows.Forms.MessageBox]::Show("New version available! Install?", "Update", 4, 32) -eq 6) { Start-Process "https://github.com/kozaaaaczx/steam-lua/releases/latest" }
-            }
-        }
-    } catch {}
+function Update-Accounts {
+    $cmbAccounts.Items.Clear(); $script:AccList = @(Get-SteamAccounts)
+    foreach ($a in $script:AccList) { $cmbAccounts.Items.Add("$($a.persona) ($($a.name))") | Out-Null }
+    if ($cmbAccounts.Items.Count -gt 0) {
+        $cmbAccounts.SelectedIndex = 0
+        try { $cur = (Get-ItemProperty "HKCU:\Software\Valve\Steam" -ErrorAction SilentlyContinue).AutoLoginUser
+            if ($cur) { for ($i=0;$i -lt $script:AccList.Count;$i++) { if ($script:AccList[$i].name -eq $cur) { $cmbAccounts.SelectedIndex=$i; break } } }
+        } catch {}
+    }
+}
+
+function Update-SteamStatus {
+    $pr = Get-Process steam -ErrorAction SilentlyContinue
+    if ($pr) { $statusSteam.Text = "● STEAM: RUNNING"; $statusSteam.Foreground = [System.Windows.Media.Brushes]::LimeGreen }
+    else { $statusSteam.Text = "● STEAM: STOPPED"; $statusSteam.Foreground = [System.Windows.Media.Brushes]::IndianRed }
 }
 
 # Events
-$btnStart.Add_Click({ Start-Steam; Add-Log $rtbLog "Steam started." })
-$btnStop.Add_Click({ Stop-SteamGracefully ([int]$numWait.Value); Add-Log $rtbLog "Steam stopped." })
-$btnRestart.Add_Click({ Restart-Steam; Add-Log $rtbLog "Steam restarted." })
-$btnKill.Add_Click({ Get-Process steam, steamwebhelper -ErrorAction SilentlyContinue | Stop-Process -Force; Add-Log $rtbLog "Killed all." })
-$btnImport.Add_Click({ 
-    $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Multiselect = $true; $d.Filter = "Files (*.manifest, *.lua)|*.manifest;*.lua"
-    if ($d.ShowDialog() -eq 1) { Import-Files $d.FileNames; Add-Log $rtbLog "Import done." }
+$btnStart.Add_Click({ try { Start-Steam; Write-Log "Steam started." } catch { Write-Log "Error: $($_.Exception.Message)" } })
+$btnStop.Add_Click({ try { $w = [int]$txtWait.Text; Stop-SteamGracefully $w; Write-Log "Steam stopped." } catch { Write-Log "Error: $($_.Exception.Message)" } })
+$btnRestart.Add_Click({ try { Restart-Steam; Write-Log "Steam restarted." } catch { Write-Log "Error: $($_.Exception.Message)" } })
+$btnKill.Add_Click({ Get-Process steam,steamwebhelper,SteamService -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Write-Log "All Steam processes killed." })
+$btnImport.Add_Click({
+    $dlg = New-Object System.Windows.Forms.OpenFileDialog; $dlg.Multiselect = $true; $dlg.Filter = "Steam Files|*.manifest;*.lua"
+    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Import-Files $dlg.FileNames; Write-Log "Import complete." }
 })
-$btnSwitchAcc.Add_Click({
-    if ($comboAccounts.SelectedIndex -ge 0) {
-        $a = $script:AccList[$comboAccounts.SelectedIndex]
+$btnSwitch.Add_Click({
+    if ($cmbAccounts.SelectedIndex -ge 0 -and $script:AccList.Count -gt 0) {
+        $a = $script:AccList[$cmbAccounts.SelectedIndex]
         Set-ItemProperty "HKCU:\Software\Valve\Steam" -Name "AutoLoginUser" -Value $a.name
         Set-ItemProperty "HKCU:\Software\Valve\Steam" -Name "RememberPassword" -Value 1
-        Add-Log $rtbLog "Switched to $($a.name). Restarting..."; Restart-Steam
+        Write-Log "Switched to: $($a.name). Restarting..."; Restart-Steam
     }
 })
-${form}.Add_DragEnter({ if ($_.Data.GetDataPresent('FileDrop')) { $_.Effect = 'Copy' } })
-${form}.Add_DragDrop({ $fs = $_.Data.GetData('FileDrop'); Import-Files $fs; if([System.Windows.Forms.MessageBox]::Show("Restart Steam?", "Done", 4, 32) -eq 6){ Restart-Steam } })
-$chkAlwaysOnTop.Add_CheckedChanged({ ${form}.TopMost = $chkAlwaysOnTop.Checked })
-$btnAbout.Add_Click({ [System.Windows.Forms.MessageBox]::Show("SteamShell v$script:AppVersion`n`nGitHub: https://github.com/kozaaaaczx/steam-lua", "About", 0, 64) })
+$btnClear.Add_Click({ $txtLog.Clear() })
+$btnDepot.Add_Click({ try { Start-Process 'C:\Program Files (x86)\Steam\depotcache' } catch { Write-Log "Folder not found." } })
+$btnLua.Add_Click({ try { Start-Process 'C:\Program Files (x86)\Steam\config\stplug-in' } catch { Write-Log "Folder not found." } })
+$btnConfig.Add_Click({ try { Start-Process 'C:\Program Files (x86)\Steam\config' } catch { Write-Log "Folder not found." } })
+$btnBrowse.Add_Click({
+    $dlg = New-Object System.Windows.Forms.OpenFileDialog; $dlg.Filter = "steam.exe|steam.exe"
+    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $script:SteamExeOverride = $dlg.FileName; Write-Log "Steam path set: $($dlg.FileName)" }
+})
+$btnAbout.Add_Click({ [System.Windows.MessageBox]::Show("SteamShell v$script:AppVersion`n`nModern Steam Management Tool`nDrag & Drop supported!`n`nGitHub: github.com/kozaaaaczx/steam-lua", "About SteamShell", 0, 64) })
+$chkOnTop.Add_Checked({ $window.Topmost = $true }); $chkOnTop.Add_Unchecked({ $window.Topmost = $false })
+
+# Drag & Drop
+$window.Add_DragEnter({ param($s,$e) if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) { $e.Effects = 'Copy' } })
+$window.Add_Drop({ param($s,$e) $fs = $e.Data.GetData([System.Windows.DataFormats]::FileDrop); Import-Files $fs; Write-Log "Drag & Drop import done." })
+
+# Timers
+$timer = New-Object System.Windows.Threading.DispatcherTimer; $timer.Interval = [TimeSpan]::FromSeconds(3)
+$timer.Add_Tick({ Update-SteamStatus }); $timer.Start()
+
+$timerUpd = New-Object System.Windows.Threading.DispatcherTimer; $timerUpd.Interval = [TimeSpan]::FromSeconds(4)
+$timerUpd.Add_Tick({
+    $timerUpd.Stop()
+    try {
+        $rel = Invoke-RestMethod "https://api.github.com/repos/kozaaaaczx/steam-lua/releases/latest" -ErrorAction SilentlyContinue
+        if ($rel.tag_name -match '(\d+\.\d+\.\d+)' -and [version]$matches[1] -gt [version]$script:AppVersion) {
+            if ([System.Windows.MessageBox]::Show("New version v$($matches[1]) available! Open download page?", "Update", 4, 32) -eq 6) {
+                Start-Process "https://github.com/kozaaaaczx/steam-lua/releases/latest"
+            }
+        }
+    } catch {}
+}); $timerUpd.Start()
 
 # Init
-Refresh-Accounts
-$timerStatus = New-Object System.Windows.Forms.Timer; $timerStatus.Interval = 3000
-$timerStatus.Add_Tick({ 
-    $procs = Get-Process steam -ErrorAction SilentlyContinue
-    if ($procs) { $statusSteam.Text = "STEAM: RUNNING"; $statusSteam.ForeColor = $colorSuccess } else { $statusSteam.Text = "STEAM: STOPPED"; $statusSteam.ForeColor = $colorError }
-})
-$timerStatus.Start()
-
-$timerUpd = New-Object System.Windows.Forms.Timer; $timerUpd.Interval = 3000
-$timerUpd.Add_Tick({ param($s,$e) $s.Stop(); Check-Updates })
-$timerUpd.Start()
-
-[void]${form}.ShowDialog()
+Update-Accounts; Update-SteamStatus; Write-Log "SteamShell v$script:AppVersion loaded."
+$window.ShowDialog() | Out-Null
