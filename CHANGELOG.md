@@ -2,6 +2,7 @@
 
 ## [0.3.0] - 2026-03-20
 ### Added
+- **Project Renamed to SteamShell** (formerly Steam Lua Manager).
 - **Steam Status Monitor**: Real-time status display in the status bar (Running/Stopped).
 - **Import Backup**: Option to automatically create `.bak` copies of files before they are overwritten.
 - **Kill All Button**: Emergency button to force-close all Steam-related processes immediately.

@@ -94,7 +94,7 @@ function Add-Log {
 
 # UI
 ${form} = New-Object System.Windows.Forms.Form
-${form}.Text = "Steam Lua v$script:AppVersion"
+${form}.Text = "SteamShell v$script:AppVersion"
 ${form}.Size = New-Object System.Drawing.Size(1020, 600)
 ${form}.StartPosition = 'CenterScreen'
 ${form}.MaximizeBox = $true
@@ -317,7 +317,7 @@ $statusStrip.BackColor = $colorSurface
 $statusStrip.ForeColor = [System.Drawing.Color]::White
 
 $statusLabel = New-Object System.Windows.Forms.ToolStripStatusLabel
-$statusLabel.Text = "Steam Lua v$script:AppVersion • Ready"
+$statusLabel.Text = "SteamShell v$script:AppVersion • Ready"
 $statusStrip.Items.Add($statusLabel) | Out-Null
 
 $statusSteam = New-Object System.Windows.Forms.ToolStripStatusLabel
@@ -481,8 +481,8 @@ $btnRevealConfig.Add_Click({ Open-Folder -path 'C:\Program Files (x86)\Steam\con
 $btnClearLog.Add_Click({ $rtbLog.Clear() })
 $btnAlwaysOnTop.Add_CheckedChanged({ ${form}.TopMost = $chkAlwaysOnTop.Checked })
 $btnAbout.Add_Click({
-    $msg = "Steam Lua Manager v$script:AppVersion`n`nNew Features in v0.3.0:`n- Steam Status Monitor`n- Backup before Import`n- Kill All processes`n- Stability improvements`n`nGitHub: https://github.com/kozaaaaczx/steam-lua"
-    [System.Windows.Forms.MessageBox]::Show($msg, 'About', 0, 64) | Out-Null
+    $msg = "SteamShell v$script:AppVersion`n`nNew Features in v0.3.0:`n- Steam Status Monitor`n- Backup before Import`n- Kill All processes`n- Stability improvements`n`nGitHub: https://github.com/kozaaaaczx/steam-lua"
+    [System.Windows.Forms.MessageBox]::Show($msg, 'About SteamShell', 0, 64) | Out-Null
 })
 
 # Init
