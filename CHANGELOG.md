@@ -1,18 +1,15 @@
 # Changelog
 
-## [0.9.0] - 2026-03-22
+## [1.0.0] - 2026-03-22
 ### Added
-- **The Premium Launcher Update**: Complete UI redesign to match modern high-end desktop application standards.
-- **Native Iconography**: Replaced emojis with **Segoe MDL2 Assets** (native Windows icons) for a professional OS-integrated look.
-- **Dynamic Interaction**: Added **Scale-on-hover** animations to all cards and primary buttons (Scale 1.05x).
-- **Navigation Polish**: Added a vertical "active indicator" bar to the sidebar and smooth transitions.
-- **Dashboard Cards**: Replaced the empty landing page with **Live Status Cards** (Steam Status, Active Profile).
-- **Unified Palette**: Switched to a refined professional dark theme:
-  - Background: `#0B0F14`
-  - Panels: `#121821`
-  - Hover: `#1A2330`
-  - Accent: `#4CC2FF` (Vibrant Cyan)
-- **Visual Hierarchy**: Improved text contrast and spacing to eliminate "UI emptiness" and administrative look.
+- **THE ELITE STABLE RELEASE**: Final transformation of the UI into a premium-grade desktop application.
+- **Hero Header Section**: Added a massive, beautifully gradient-styled header to the Dashboard for a "first-impression" wow factor.
+- **Glowing DashCards**: Cards now feature a subtle **Glow Effect** and **Scale Animation (1.03x)** on hover, providing visual feedback and depth.
+- **Pill-Style Status Badges**: Replaced raw text status with modern, colored badge elements for a cleaner look.
+- **Motion UI (Slide-on-hover)**: Navigation items now slide 6px to the right when hovered, creating a more interactive and alive feel.
+- **Premium Accent Gradients**: High-gloss **LinearGradientBrushes** applied to all primary buttons and accent lines.
+- **Integrated Action Center**: Core Steam controls (Start/Stop) are now professionally integrated into the Hero Section.
+- **Refined Layout**: Increased window size, padding, and font sizes (15px/16px) across the board to eliminate "Empty UI Syndrome".
 
-## [0.8.0] - 2026-03-22
+## [0.9.0] - 2026-03-22
 ...

@@ -1,8 +1,8 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# SteamShell v0.9.0 "The Launcher Experience"
-$script:AppVersion = '0.9.0'
+# SteamShell v1.0.0 "The Elite Release"
+$script:AppVersion = '1.0.0'
 $script:SteamExeOverride = $null
 
 function Get-SteamExePath {
@@ -53,35 +53,39 @@ Add-Type -AssemblyName System.Windows.Forms
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SteamShell" Height="800" Width="1200"
+        Title="SteamShell Elite" Height="820" Width="1240"
         WindowStartupLocation="CenterScreen" AllowDrop="True"
         WindowStyle="None" ResizeMode="CanResizeWithGrip"
         Background="Transparent" AllowsTransparency="True">
   <Window.Resources>
     
-    <!-- Modern Color Palette -->
     <SolidColorBrush x:Key="BgBrush" Color="#0B0F14"/>
     <SolidColorBrush x:Key="PanelBrush" Color="#121821"/>
     <SolidColorBrush x:Key="HoverBrush" Color="#1A2330"/>
-    <SolidColorBrush x:Key="AccentBrush" Color="#4CC2FF"/>
     <SolidColorBrush x:Key="BorderBrush" Color="#1F2937"/>
     <SolidColorBrush x:Key="TextMain" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="TextDim" Color="#8B949E"/>
 
-    <!-- Nav Button -->
+    <LinearGradientBrush x:Key="AccentBrush" StartPoint="0,0" EndPoint="1,1">
+      <GradientStop Color="#4CC2FF" Offset="0"/>
+      <GradientStop Color="#6EE7FF" Offset="1"/>
+    </LinearGradientBrush>
+
+    <!-- Nav Button with Slide Animation -->
     <Style x:Key="NavBtn" TargetType="RadioButton">
       <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
       <Setter Property="FontSize" Value="14"/>
       <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Height" Value="52"/>
-      <Setter Property="Margin" Value="0,2,0,2"/>
+      <Setter Property="Height" Value="54"/>
+      <Setter Property="Margin" Value="0,4"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="RadioButton">
-            <Border x:Name="bd" Background="Transparent" CornerRadius="8" Padding="14,0">
+            <Border x:Name="bd" Background="Transparent" CornerRadius="10" Padding="16,0">
+              <Border.RenderTransform><TranslateTransform X="0"/></Border.RenderTransform>
               <StackPanel Orientation="Horizontal">
-                <Border x:Name="indicator" Width="3" Height="20" Background="{StaticResource AccentBrush}" CornerRadius="2" HorizontalAlignment="Left" Visibility="Collapsed" Margin="-14,0,11,0"/>
-                <TextBlock x:Name="icon" Text="{TemplateBinding Content}" FontFamily="Segoe MDL2 Assets" FontSize="18" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                <Border x:Name="indicator" Width="4" Height="22" Background="{StaticResource AccentBrush}" CornerRadius="2" HorizontalAlignment="Left" Visibility="Collapsed" Margin="-16,0,12,0"/>
+                <TextBlock x:Name="icon" Text="{TemplateBinding Content}" FontFamily="Segoe MDL2 Assets" FontSize="20" VerticalAlignment="Center" Margin="0,0,16,0"/>
                 <TextBlock x:Name="txt" Text="{TemplateBinding Tag}" VerticalAlignment="Center" FontFamily="Segoe UI Semibold"/>
               </StackPanel>
             </Border>
@@ -89,11 +93,18 @@ Add-Type -AssemblyName System.Windows.Forms
               <Trigger Property="IsMouseOver" Value="True">
                 <Setter TargetName="bd" Property="Background" Value="{StaticResource HoverBrush}"/>
                 <Setter Property="Foreground" Value="White"/>
+                <Trigger.EnterActions>
+                  <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)" To="6" Duration="0:0:0.2"/></Storyboard></BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)" To="0" Duration="0:0:0.2"/></Storyboard></BeginStoryboard>
+                </Trigger.ExitActions>
               </Trigger>
               <Trigger Property="IsChecked" Value="True">
                 <Setter TargetName="indicator" Property="Visibility" Value="Visible"/>
                 <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
                 <Setter TargetName="icon" Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                <Setter TargetName="bd" Property="Background" Value="{StaticResource HoverBrush}"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -101,33 +112,54 @@ Add-Type -AssemblyName System.Windows.Forms
       </Setter>
     </Style>
 
-    <!-- Dash Card -->
+    <!-- Glowing Dash Card -->
     <Style x:Key="DashCard" TargetType="Border">
       <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
-      <Setter Property="CornerRadius" Value="14"/>
-      <Setter Property="Padding" Value="24"/>
+      <Setter Property="CornerRadius=" Value="16"/>
+      <Setter Property="Padding" Value="28"/>
       <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
       <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="Margin" Value="0,0,16,16"/>
+      <Setter Property="Margin" Value="0,0,20,20"/>
       <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
-      <Setter Property="RenderTransform">
-        <Setter.Value><ScaleTransform ScaleX="1" ScaleY="1"/></Setter.Value>
+      <Setter Property="RenderTransform"><ScaleTransform ScaleX="1" ScaleY="1"/></Setter>
+      <Setter Property="Effect">
+        <Setter.Value><DropShadowEffect BlurRadius="25" ShadowDepth="0" Opacity="0"/></Setter.Value>
       </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Trigger.EnterActions>
+            <BeginStoryboard><Storyboard>
+              <DoubleAnimation Storyboard.TargetProperty="Effect.Opacity" To="0.4" Duration="0:0:0.2"/>
+              <ColorAnimation Storyboard.TargetProperty="Effect.Color" To="#4CC2FF" Duration="0:0:0.2"/>
+              <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.03" Duration="0:0:0.2"/>
+              <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.03" Duration="0:0:0.2"/>
+            </Storyboard></BeginStoryboard>
+          </Trigger.EnterActions>
+          <Trigger.ExitActions>
+            <BeginStoryboard><Storyboard>
+              <DoubleAnimation Storyboard.TargetProperty="Effect.Opacity" To="0" Duration="0:0:0.2"/>
+              <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.2"/>
+              <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.2"/>
+            </Storyboard></BeginStoryboard>
+          </Trigger.ExitActions>
+        </Trigger>
+      </Style.Triggers>
     </Style>
 
-    <Style x:Key="ActionBtn" TargetType="Button">
+    <!-- Standard Button -->
+    <Style x:Key="EliteBtn" TargetType="Button">
       <Setter Property="Foreground" Value="White"/>
       <Setter Property="FontSize" Value="13"/>
       <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
       <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Padding" Value="24,14"/>
+      <Setter Property="Padding" Value="28,14"/>
       <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
       <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="10" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="12" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
                <Border.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></Border.RenderTransform>
                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
@@ -135,12 +167,10 @@ Add-Type -AssemblyName System.Windows.Forms
               <Trigger Property="IsMouseOver" Value="True">
                 <Setter TargetName="bd" Property="Background" Value="{StaticResource HoverBrush}"/>
                 <Trigger.EnterActions>
-                  <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.04" Duration="0:0:0.15"/></Storyboard></BeginStoryboard>
-                  <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.04" Duration="0:0:0.15"/></Storyboard></BeginStoryboard>
+                  <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.05" Duration="0:0:0.15"/></Storyboard></BeginStoryboard>
                 </Trigger.EnterActions>
                 <Trigger.ExitActions>
                   <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.15"/></Storyboard></BeginStoryboard>
-                  <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.15"/></Storyboard></BeginStoryboard>
                 </Trigger.ExitActions>
               </Trigger>
             </ControlTemplate.Triggers>
@@ -151,15 +181,15 @@ Add-Type -AssemblyName System.Windows.Forms
 
   </Window.Resources>
 
-  <Border x:Name="mainBorder" Background="{StaticResource BgBrush}" CornerRadius="16" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+  <Border x:Name="mainBorder" Background="{StaticResource BgBrush}" CornerRadius="20" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
     <Grid>
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="260"/>
+        <ColumnDefinition Width="280"/>
         <ColumnDefinition Width="*"/>
       </Grid.ColumnDefinitions>
 
       <!-- Sidebar -->
-      <Border Grid.Column="0" Background="{StaticResource PanelBrush}" CornerRadius="16,0,0,16" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+      <Border Grid.Column="0" Background="{StaticResource PanelBrush}" CornerRadius="20,0,0,20" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
         <Grid>
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -167,153 +197,162 @@ Add-Type -AssemblyName System.Windows.Forms
             <RowDefinition Height="Auto"/>
           </Grid.RowDefinitions>
 
-          <!-- App Logo -->
-          <StackPanel Grid.Row="0" Margin="28,48,28,40">
+          <StackPanel Grid.Row="0" Margin="32,56,32,48">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-              <Border Width="38" Height="38" Background="{StaticResource AccentBrush}" CornerRadius="10">
-                <TextBlock Text="&#xE961;" FontFamily="Segoe MDL2 Assets" Foreground="#000" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="20"/>
+              <Border Width="42" Height="42" CornerRadius="12" Background="{StaticResource AccentBrush}">
+                 <TextBlock Text="&#xE961;" FontFamily="Segoe MDL2 Assets" Foreground="#000" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="22"/>
               </Border>
-              <TextBlock Text="SteamShell" FontSize="22" FontWeight="Bold" Foreground="White" Margin="14,0,0,0" VerticalAlignment="Center"/>
+              <TextBlock Text="SteamShell" FontSize="26" FontWeight="Bold" Foreground="White" Margin="16,0,0,0" VerticalAlignment="Center" LetterSpacing="-0.5"/>
             </StackPanel>
-            <TextBlock x:Name="lblVer" Text="v0.9.0" FontSize="11" Foreground="{StaticResource TextDim}" Margin="52,2,0,0"/>
+            <TextBlock x:Name="lblVer" Text="ELITE STABLE v1.0.0" FontSize="10" Foreground="{StaticResource TextDim}" Margin="58,2,0,0" FontWeight="Bold" LetterSpacing="1"/>
           </StackPanel>
 
-          <!-- Nav Menu -->
-          <StackPanel Grid.Row="1" Margin="18,0">
+          <StackPanel Grid.Row="1" Margin="20,0">
             <RadioButton x:Name="navDashboard" Content="&#xE80F;" Tag="Dashboard" Style="{StaticResource NavBtn}" IsChecked="True"/>
             <RadioButton x:Name="navAccounts"  Content="&#xE77B;" Tag="Profiles" Style="{StaticResource NavBtn}"/>
-            <RadioButton x:Name="navFiles"     Content="&#xE8B7;" Tag="Assets" Style="{StaticResource NavBtn}"/>
-            <RadioButton x:Name="navSettings"  Content="&#xE713;" Tag="Settings" Style="{StaticResource NavBtn}"/>
+            <RadioButton x:Name="navFiles"     Content="&#xE8B7;" Tag="Assets &amp; Tools" Style="{StaticResource NavBtn}"/>
+            <RadioButton x:Name="navSettings"  Content="&#xE713;" Tag="Configuration" Style="{StaticResource NavBtn}"/>
           </StackPanel>
 
-          <StackPanel Grid.Row="2" Margin="18,0,18,32">
-            <Button x:Name="btnAbout" Content="&#xE946;" Tag="Help &amp; Social" Style="{StaticResource NavBtn}"/>
+          <StackPanel Grid.Row="2" Margin="20,0,20,32">
+             <Button x:Name="btnAbout" Content="&#xE946;" Tag="Help &amp; Social" Style="{StaticResource NavBtn}"/>
           </StackPanel>
         </Grid>
       </Border>
 
       <!-- Content -->
       <Grid Grid.Column="1">
-        <Grid.RowDefinitions>
-          <RowDefinition Height="56"/>
-          <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="64"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
         <!-- ToolBar -->
-        <Grid Grid.Row="0" x:Name="titleBar">
-          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,8,0">
-            <Button x:Name="btnMin" Content="&#xE921;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource NavBtn}" Height="32" Width="44" Padding="0" Margin="0"/>
-            <Button x:Name="btnClose" Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource NavBtn}" Height="32" Width="44" Padding="0" Foreground="#F85149" Margin="0"/>
+        <Grid Grid.Row="0" x:Name="titleBar" Background="Transparent" Margin="0,0,12,0">
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <Button x:Name="btnMin" Content="&#xE921;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource NavBtn}" Height="34" Width="46" Margin="0"/>
+            <Button x:Name="btnClose" Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource NavBtn}" Height="34" Width="46" Foreground="#F85149" Margin="0"/>
           </StackPanel>
         </Grid>
 
-        <!-- Pages -->
-        <Grid Grid.Row="1" Margin="44,12,44,36">
+        <!-- Page Content -->
+        <Grid Grid.Row="1" Margin="48,0,48,40">
 
           <!-- Dashboard -->
           <Grid x:Name="pageDashboard">
-            <Grid.RowDefinitions>
-              <RowDefinition Height="Auto"/>
-              <RowDefinition Height="Auto"/>
-              <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+            
+            <!-- Hero Header -->
+            <Border Grid.Row="0" Height="140" CornerRadius="20" Margin="0,0,0,32">
+              <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                  <GradientStop Color="#4CC2FF" Offset="0"/>
+                  <GradientStop Color="#0B0F14" Offset="1.2"/>
+                </LinearGradientBrush>
+              </Border.Background>
+              <Grid Margin="32">
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Welcome back, Agent." FontSize="28" FontWeight="Bold" Foreground="White" LetterSpacing="-0.5"/>
+                  <TextBlock Text="Everything is optimized. Steam environment ready for operations." Foreground="#E0E0E0" Opacity="0.9" Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                  <Button x:Name="btnStart" Content="START STEAM" Background="White" Foreground="#0B0F14" Style="{StaticResource EliteBtn}" Width="150" FontWeight="Bold" Margin="0,0,16,0"/>
+                  <Button x:Name="btnStop" Content="STOP" Background="#20FFFFFF" Foreground="White" BorderBrush="Transparent" Style="{StaticResource EliteBtn}" Width="100"/>
+                </StackPanel>
+              </Grid>
+            </Border>
 
-            <TextBlock Grid.Row="0" Text="Overview" FontSize="26" FontWeight="Bold" Foreground="White" Margin="0,0,0,28"/>
-
+            <!-- Cards -->
             <WrapPanel Grid.Row="1">
-              <!-- Steam Status Card -->
-              <Border Style="{StaticResource DashCard}" Width="240">
+              <Border Style="{StaticResource DashCard}" Width="260">
                 <StackPanel>
-                  <TextBlock Text="STEAM STATUS" Foreground="{StaticResource TextDim}" FontSize="10" FontWeight="Bold" Margin="0,0,0,14" LetterSpacing="1"/>
-                  <StackPanel Orientation="Horizontal">
-                    <TextBlock x:Name="statusSteam" Text="CHECKING..." Foreground="{StaticResource AccentBrush}" FontSize="18" FontWeight="SemiBold"/>
-                  </StackPanel>
+                  <TextBlock Text="SESSION STATUS" Foreground="{StaticResource TextDim}" FontSize="11" FontWeight="Bold" Margin="0,0,0,16" LetterSpacing="1"/>
+                  <Border x:Name="bdStatus" Background="#20F85149" CornerRadius="8" Padding="12,6" HorizontalAlignment="Left" BorderThickness="1" BorderBrush="#80F85149">
+                     <TextBlock x:Name="statusSteam" Text="INACTIVE" Foreground="#FF6B60" FontSize="13" FontWeight="Bold"/>
+                  </Border>
                 </StackPanel>
               </Border>
 
-              <!-- Active Profile Card -->
-              <Border Style="{StaticResource DashCard}" Width="320">
+              <Border Style="{StaticResource DashCard}" Width="380">
                 <StackPanel>
-                  <TextBlock Text="ACTIVE PROFILE" Foreground="{StaticResource TextDim}" FontSize="10" FontWeight="Bold" Margin="0,0,0,14" LetterSpacing="1"/>
-                  <TextBlock x:Name="lblActiveAcc" Text="Unknown" Foreground="White" FontSize="18" FontWeight="SemiBold"/>
+                  <TextBlock Text="ACTIVE STEAM PROFILE" Foreground="{StaticResource TextDim}" FontSize="11" FontWeight="Bold" Margin="0,0,0,16" LetterSpacing="1"/>
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource AccentBrush}" FontSize="24" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                    <TextBlock x:Name="lblActiveAcc" Text="None" Foreground="White" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                  </StackPanel>
                 </StackPanel>
               </Border>
             </WrapPanel>
 
             <!-- Console -->
-            <Grid Grid.Row="2" Margin="0,12,0,0">
-              <Border Background="{StaticResource PanelBrush}" CornerRadius="14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+            <Grid Grid.Row="2" Margin="0,8,0,0">
+              <Border Background="{StaticResource PanelBrush}" CornerRadius="18" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                 <Grid>
-                  <Grid.RowDefinitions><RowDefinition Height="46"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                  <Border Background="{StaticResource HoverBrush}" CornerRadius="14,14,0,0" Padding="18,0">
+                  <Grid.RowDefinitions><RowDefinition Height="52"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                  <Border Background="{StaticResource HoverBrush}" CornerRadius="18,18,0,0" Padding="22,0">
                     <Grid>
-                      <TextBlock Text="Command Output" VerticalAlignment="Center" Foreground="{StaticResource TextDim}" FontSize="12" FontWeight="SemiBold"/>
-                      <Button x:Name="btnClear" Content="&#xE894; Clear" FontFamily="Segoe MDL2 Assets" Style="{StaticResource NavBtn}" Height="30" HorizontalAlignment="Right" FontSize="11" Padding="8,0" Margin="0"/>
+                      <TextBlock Text="System Terminal Output" VerticalAlignment="Center" Foreground="{StaticResource TextDim}" FontSize="13" FontWeight="SemiBold"/>
+                       <Button x:Name="btnClear" Content="&#xE894; Flush Logs" FontFamily="Segoe MDL2 Assets" Style="{StaticResource NavBtn}" Height="34" HorizontalAlignment="Right" FontSize="11" Padding="12,0" Margin="0"/>
                     </Grid>
                   </Border>
                   <ScrollViewer Grid.Row="1" x:Name="svLog" VerticalScrollBarVisibility="Auto">
-                    <TextBox x:Name="txtLog" Background="Transparent" Foreground="#4CC2FF" IsReadOnly="True" BorderThickness="0" Padding="20" FontFamily="Consolas" FontSize="14" TextWrapping="Wrap"/>
+                    <TextBox x:Name="txtLog" Background="Transparent" Foreground="#6EE7FF" IsReadOnly="True" BorderThickness="0" Padding="24" FontFamily="Consolas" FontSize="15" TextWrapping="Wrap"/>
                   </ScrollViewer>
                 </Grid>
               </Border>
-              
-              <!-- Action Tray -->
-              <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="24" Orientation="Horizontal">
-                <Button x:Name="btnStart" Content="START" Background="{StaticResource AccentBrush}" Foreground="#000" Style="{StaticResource ActionBtn}" Width="120" Margin="0,0,12,0" FontWeight="Bold"/>
-                <Button x:Name="btnStop" Content="STOP" Style="{StaticResource ActionBtn}" Width="100"/>
-              </StackPanel>
             </Grid>
           </Grid>
 
-          <!-- Profiles -->
+          <!-- Accounts Page -->
           <Grid x:Name="pageAccounts" Visibility="Collapsed">
             <StackPanel MaxWidth="600" HorizontalAlignment="Left">
-              <TextBlock Text="Profiles" FontSize="26" FontWeight="Bold" Foreground="White" Margin="0,0,0,8"/>
-              <TextBlock Text="Switch between local Steam accounts with one click." Foreground="{StaticResource TextDim}" Margin="0,0,0,40"/>
+              <TextBlock Text="Profiles Management" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,0,0,12" LetterSpacing="-1"/>
+              <TextBlock Text="Switch between detected Steam accounts instantly. All sessions are persistent." Foreground="{StaticResource TextDim}" FontSize="15" Margin="0,0,0,48"/>
               
-              <Border Background="{StaticResource PanelBrush}" CornerRadius="14" Padding="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+              <Border Background="{StaticResource PanelBrush}" CornerRadius="20" Padding="32" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                 <StackPanel>
-                  <TextBlock Text="Select Account" Foreground="White" Margin="0,0,0,12"/>
-                  <ComboBox x:Name="cmbAccounts" Background="{StaticResource BgBrush}" Foreground="White" Height="48" Padding="12" FontSize="14"/>
-                  <Button x:Name="btnSwitch" Content="Switch &amp; Restart Steam" Background="{StaticResource AccentBrush}" Foreground="#000" Style="{StaticResource ActionBtn}" Margin="0,24,0,0" FontWeight="Bold"/>
+                  <TextBlock Text="Identity Provider" Foreground="{StaticResource TextDim}" FontSize="11" FontWeight="Bold" Margin="0,0,0,14" LetterSpacing="1"/>
+                  <ComboBox x:Name="cmbAccounts" Background="{StaticResource BgBrush}" Foreground="White" Height="52" Padding="16" FontSize="15" BorderBrush="{StaticResource BorderBrush}"/>
+                  <Button x:Name="btnSwitch" Content="Switch Identity &amp; Reboot Steam" Background="{StaticResource AccentBrush}" Foreground="#000" Style="{StaticResource EliteBtn}" Margin="0,32,0,0" FontWeight="Bold" FontSize="14"/>
                 </StackPanel>
               </Border>
             </StackPanel>
           </Grid>
 
-          <!-- Files -->
+          <!-- Assets Page -->
           <Grid x:Name="pageFiles" Visibility="Collapsed">
-            <StackPanel MaxWidth="700" HorizontalAlignment="Left">
-              <TextBlock Text="Assets" FontSize="26" FontWeight="Bold" Foreground="White" Margin="0,0,0,8"/>
-              <TextBlock Text="Import .manifest and .lua files directly into Steam folders." Foreground="{StaticResource TextDim}" Margin="0,0,0,40"/>
+            <StackPanel MaxWidth="800" HorizontalAlignment="Left">
+              <TextBlock Text="Asset Deployment" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,0,0,12" LetterSpacing="-1"/>
+              <TextBlock Text="Deploy .manifest and .lua assets directly to targeted Steam directories." Foreground="{StaticResource TextDim}" FontSize="15" Margin="0,0,0,48"/>
               
-              <Button x:Name="btnImport" Content="&#xE8B5; Open File Picker" Style="{StaticResource ActionBtn}" Height="60" Width="300" HorizontalAlignment="Left" FontSize="16" Margin="0,0,0,40"/>
+              <Button x:Name="btnImport" Content="&#xE8B5; Select Assets to Import" Background="{StaticResource AccentBrush}" Foreground="#000" Style="{StaticResource EliteBtn}" Height="70" Width="400" HorizontalAlignment="Left" FontSize="18" Margin="0,0,0,56" FontWeight="Bold"/>
               
-              <TextBlock Text="Quick Access Folders" Foreground="White" FontWeight="Bold" Margin="0,0,0,16"/>
+              <TextBlock Text="Quick Access Bridges" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,24"/>
               <WrapPanel>
-                 <Button x:Name="btnDepot"  Content="&#xE8B7; Depot Cache" Style="{StaticResource ActionBtn}" Margin="0,0,12,12"/>
-                 <Button x:Name="btnLua"    Content="&#xE8B7; LUA Scripts" Style="{StaticResource ActionBtn}" Margin="0,0,12,12"/>
-                 <Button x:Name="btnConfig" Content="&#xE8B7; Steam config" Style="{StaticResource ActionBtn}" Margin="0,0,12,12"/>
+                 <Button x:Name="btnDepot"  Content="&#xE8B7; Depot Vault" Style="{StaticResource EliteBtn}" Margin="0,0,16,16"/>
+                 <Button x:Name="btnLua"    Content="&#xE8B7; LUA Repository" Style="{StaticResource EliteBtn}" Margin="0,0,16,16"/>
+                 <Button x:Name="btnConfig" Content="&#xE8B7; Config Root" Style="{StaticResource EliteBtn}" Margin="0,0,16,16"/>
               </WrapPanel>
             </StackPanel>
           </Grid>
 
-          <!-- Settings -->
+          <!-- Configuration Page -->
           <Grid x:Name="pageSettings" Visibility="Collapsed">
             <StackPanel MaxWidth="600" HorizontalAlignment="Left">
-              <TextBlock Text="Configuration" FontSize="26" FontWeight="Bold" Foreground="White" Margin="0,0,0,40"/>
+              <TextBlock Text="Engine Settings" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,0,0,48" LetterSpacing="-1"/>
               
-              <Border Background="{StaticResource PanelBrush}" CornerRadius="14" Padding="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="0,0,0,24">
+              <Border Background="{StaticResource PanelBrush}" CornerRadius="20" Padding="32" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="0,0,0,32">
                 <StackPanel>
-                  <CheckBox x:Name="chkBackup" Content="Enable file backups" IsChecked="True" Foreground="White" Margin="0,0,0,12"/>
-                  <CheckBox x:Name="chkOnTop" Content="Always on top" Foreground="White"/>
+                  <TextBlock Text="Behavior" Foreground="{StaticResource TextDim}" FontSize="11" FontWeight="Bold" Margin="0,0,0,20" LetterSpacing="1"/>
+                  <CheckBox x:Name="chkBackup" Content="Automatic asset backup before deployment" IsChecked="True" Foreground="White" FontSize="14" Margin="0,0,0,16"/>
+                  <CheckBox x:Name="chkOnTop" Content="Force Shell Topmost" Foreground="White" FontSize="14"/>
                 </StackPanel>
               </Border>
               
-              <Border Background="{StaticResource PanelBrush}" CornerRadius="14" Padding="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock Text="Steam EXE Location" Foreground="White" VerticalAlignment="Center" Margin="0,0,24,0"/>
-                  <Button x:Name="btnBrowse" Content="Locate..." Style="{StaticResource ActionBtn}" Padding="16,8"/>
+              <Border Background="{StaticResource PanelBrush}" CornerRadius="20" Padding="32" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                <StackPanel>
+                  <TextBlock Text="Core Bridge" Foreground="{StaticResource TextDim}" FontSize="11" FontWeight="Bold" Margin="0,0,0,20" LetterSpacing="1"/>
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Steam Linkage:" Foreground="White" VerticalAlignment="Center" Margin="0,0,24,0" FontSize="14"/>
+                    <Button x:Name="btnBrowse" Content="Repair Path..." Style="{StaticResource EliteBtn}" Padding="20,10"/>
+                  </StackPanel>
                 </StackPanel>
               </Border>
             </StackPanel>
@@ -329,7 +368,7 @@ Add-Type -AssemblyName System.Windows.Forms
 $reader = New-Object System.Xml.XmlNodeReader $xaml
 $w = [System.Windows.Markup.XamlReader]::Load($reader)
 
-# Controls
+# Find controls
 $titleBar = $w.FindName("titleBar"); $lblVer = $w.FindName("lblVer")
 $btnMin = $w.FindName("btnMin"); $btnClose = $w.FindName("btnClose")
 $btnStart = $w.FindName("btnStart"); $btnStop = $w.FindName("btnStop")
@@ -339,7 +378,7 @@ $btnLua = $w.FindName("btnLua"); $btnConfig = $w.FindName("btnConfig")
 $btnBrowse = $w.FindName("btnBrowse"); $btnAbout = $w.FindName("btnAbout")
 $cmbAccounts = $w.FindName("cmbAccounts"); $chkBackup = $w.FindName("chkBackup"); $chkOnTop = $w.FindName("chkOnTop")
 $txtLog = $w.FindName("txtLog"); $svLog = $w.FindName("svLog")
-$statusSteam = $w.FindName("statusSteam"); $lblActiveAcc = $w.FindName("lblActiveAcc")
+$statusSteam = $w.FindName("statusSteam"); $lblActiveAcc = $w.FindName("lblActiveAcc"); $bdStatus = $w.FindName("bdStatus")
 
 # Nav
 $navDashboard = $w.FindName("navDashboard"); $navAccounts = $w.FindName("navAccounts")
@@ -368,9 +407,13 @@ function Write-Log([string]$msg) {
 function Update-Status {
     $pr = Get-Process steam -ErrorAction SilentlyContinue
     if ($pr) { 
-        $statusSteam.Text = "ACTIVE"; $statusSteam.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFrom("#3fb950") 
+        $statusSteam.Text = "ACTIVE"; $statusSteam.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFrom("#3fb950")
+        $bdStatus.Background = [System.Windows.Media.BrushConverter]::new().ConvertFrom("#203fb950")
+        $bdStatus.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFrom("#803fb950")
     } else { 
-        $statusSteam.Text = "INACTIVE"; $statusSteam.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFrom("#F85149") 
+        $statusSteam.Text = "INACTIVE"; $statusSteam.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFrom("#F85149")
+        $bdStatus.Background = [System.Windows.Media.BrushConverter]::new().ConvertFrom("#20F85149")
+        $bdStatus.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFrom("#80F85149")
     }
     try {
         $cur = (Get-ItemProperty "HKCU:\Software\Valve\Steam" -ErrorAction SilentlyContinue).AutoLoginUser
@@ -394,39 +437,50 @@ function Import-Files($ps) {
             $dest = Join-Path $dst ([System.IO.Path]::GetFileName($p))
             if ($chkBackup.IsChecked -and (Test-Path $dest)) { Copy-Item $dest "$dest.bak" -Force }
             Copy-Item -LiteralPath $p -Destination $dest -Force
-            Write-Log "Imported: $([System.IO.Path]::GetFileName($p))"
+            Write-Log "Deployed: $([System.IO.Path]::GetFileName($p))"
         }
     }
 }
 
-# Handlers
+# Win Handles
 $titleBar.Add_MouseLeftButtonDown({ $w.DragMove() })
 $btnMin.Add_Click({ $w.WindowState = 'Minimized' })
 $btnClose.Add_Click({ $w.Close() })
-$btnStart.Add_Click({ try { Start-Steam; Write-Log "Starting Steam..." } catch { Write-Log "Error: $($_.Exception.Message)" } })
-$btnStop.Add_Click({ try { Stop-SteamGracefully 12; Write-Log "Closing Steam..." } catch { Write-Log "Error: $($_.Exception.Message)" } })
+
+# Core Handles
+$btnStart.Add_Click({ try { Start-Steam; Write-Log "Initializing Steam Engine..." } catch { Write-Log "Error: $($_.Exception.Message)" } })
+$btnStop.Add_Click({ try { Stop-SteamGracefully 12; Write-Log "System shutdown signaled." } catch { Write-Log "Error: $($_.Exception.Message)" } })
 $btnSwitch.Add_Click({
     if ($cmbAccounts.SelectedIndex -ge 0) {
         $a = $script:AccList[$cmbAccounts.SelectedIndex]
         Set-ItemProperty "HKCU:\Software\Valve\Steam" -Name "AutoLoginUser" -Value $a.name
-        Write-Log "Profile: $($a.name). Restarting..."; Restart-Steam
+        Write-Log "Profile Switch: $($a.name). Rebooting Steam..."; Restart-Steam
     }
 })
 $btnClear.Add_Click({ $txtLog.Text = "" })
 $btnImport.Add_Click({
-    $dlg = New-Object System.Windows.Forms.OpenFileDialog; $dlg.Multiselect=$true; $dlg.Filter="Steam Assets|*.manifest;*.lua"
-    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Import-Files $dlg.FileNames; Write-Log "Done." }
+    $dlg = New-Object System.Windows.Forms.OpenFileDialog; $dlg.Multiselect=$true; $dlg.Filter="Manifests & Scripts|*.manifest;*.lua"
+    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Import-Files $dlg.FileNames; Write-Log "Manifest cycle complete." }
 })
-$btnAbout.Add_Click({ [System.Windows.MessageBox]::Show("SteamShell Professional v$script:AppVersion","Info",0,64) })
+$btnAbout.Add_Click({ [System.Windows.MessageBox]::Show("SteamShell ELITE v$script:AppVersion`nPower User Environment`n`ngithub.com/kozaaaaczx/steam-lua","Elite Shell",0,64) })
+$chkOnTop.Add_Checked({ $w.Topmost=$true }); $chkOnTop.Add_Unchecked({ $w.Topmost=$false })
+
+$btnDepot.Add_Click({ try { Start-Process 'C:\Program Files (x86)\Steam\depotcache' } catch {} })
+$btnLua.Add_Click({ try { Start-Process 'C:\Program Files (x86)\Steam\config\stplug-in' } catch {} })
+$btnConfig.Add_Click({ try { Start-Process 'C:\Program Files (x86)\Steam\config' } catch {} })
+$btnBrowse.Add_Click({
+    $dlg = New-Object System.Windows.Forms.OpenFileDialog; $dlg.Filter="steam.exe|steam.exe"
+    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $script:SteamExeOverride=$dlg.FileName; Write-Log "Core Path Linked: $($dlg.FileName)" }
+})
 
 # DragDrop
 $w.Add_DragEnter({ param($s,$e) if($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)){$e.Effects='Copy'} })
-$w.Add_Drop({ param($s,$e) Import-Files ($e.Data.GetData([System.Windows.DataFormats]::FileDrop)); Write-Log "Dropped files processed." })
+$w.Add_Drop({ param($s,$e) Import-Files ($e.Data.GetData([System.Windows.DataFormats]::FileDrop)); Write-Log "Drag & Drop sync finished." })
 
 # Timer
-$t = New-Object System.Windows.Threading.DispatcherTimer; $t.Interval=[TimeSpan]::FromSeconds(2)
+$t = New-Object System.Windows.Threading.DispatcherTimer; $t.Interval=[TimeSpan]::FromSeconds(2.5)
 $t.Add_Tick({ Update-Status }); $t.Start()
 
-# Init
-Update-Accounts; Update-Status; Write-Log "System Ready."
+# Startup
+Update-Accounts; Update-Status; Write-Log "Elite Environment v$script:AppVersion Stable."
 $w.ShowDialog() | Out-Null
