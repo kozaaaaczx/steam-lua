@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$script:AppVersion = '0.6.1'
+$script:AppVersion = '0.6.2'
 $script:SteamExeOverride = $null
 
 function Get-SteamExePath {
@@ -206,7 +206,7 @@ Add-Type -AssemblyName System.Windows.Forms
                 <Button x:Name="btnClear" Content="Clear" Style="{StaticResource SideBtn}" HorizontalAlignment="Right" Foreground="#484f58" Margin="0"/>
               </Grid>
             </Border>
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0">
+            <ScrollViewer Grid.Row="1" x:Name="svLog" VerticalScrollBarVisibility="Auto" Margin="0">
               <TextBlock x:Name="txtLog" Foreground="#3fb950" FontFamily="Cascadia Code, Consolas" FontSize="12"
                          TextWrapping="Wrap" Padding="14,10" Background="Transparent"/>
             </ScrollViewer>
@@ -287,6 +287,7 @@ $btnConfig = $w.FindName("btnConfig"); $btnBrowse = $w.FindName("btnBrowse"); $b
 $cmbAccounts = $w.FindName("cmbAccounts"); $chkBackup = $w.FindName("chkBackup"); $chkOnTop = $w.FindName("chkOnTop")
 $txtWait = $w.FindName("txtWait"); $txtLog = $w.FindName("txtLog")
 $statusLabel = $w.FindName("statusLabel"); $statusSteam = $w.FindName("statusSteam")
+$svLog = $w.FindName("svLog")
 
 $lblVer.Text = "v$script:AppVersion"
 
@@ -300,7 +301,7 @@ $btnClose.Add_Click({ $w.Close() })
 function Write-Log([string]$msg) {
     $ts = (Get-Date).ToString('HH:mm:ss')
     $txtLog.Text += "[$ts] $msg`n"
-    $sv = [System.Windows.Media.VisualTreeHelper]::GetChild($txtLog.Parent, 0)
+    if ($svLog) { $svLog.ScrollToEnd() }
 }
 
 function Import-Files($paths) {
