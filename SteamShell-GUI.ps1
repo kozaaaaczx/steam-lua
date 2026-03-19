@@ -1,8 +1,8 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# SteamShell v1.1.0 "The Minimal Update"
-$script:AppVersion = '1.1.0'
+# SteamShell v1.1.1 "The Stability Hotfix"
+$script:AppVersion = '1.1.1'
 $script:SteamExeOverride = $null
 
 function Get-SteamExePath {
@@ -66,7 +66,7 @@ Add-Type -AssemblyName System.Windows.Forms
     <SolidColorBrush x:Key="TextMain" Color="#c9d1d9"/>
     <SolidColorBrush x:Key="TextDim" Color="#8b949e"/>
 
-    <!-- Minimal Nav Button -->
+    <!-- Nav Button (RadioButton Style) -->
     <Style x:Key="NavBtn" TargetType="RadioButton">
       <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
       <Setter Property="FontSize" Value="14"/>
@@ -97,7 +97,33 @@ Add-Type -AssemblyName System.Windows.Forms
       </Setter>
     </Style>
 
-    <!-- Flat Card -->
+    <!-- Side Button (Button Style - copy of Nav styling but for generic buttons) -->
+    <Style x:Key="SideBtn" TargetType="Button">
+      <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Height" Value="46"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="12,0">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="icon" Text="{TemplateBinding Content}" FontFamily="Segoe MDL2 Assets" FontSize="18" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <TextBlock Text="{TemplateBinding Tag}" VerticalAlignment="Center" FontFamily="Segoe UI Semibold"/>
+              </StackPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="{StaticResource HoverBrush}"/>
+                <Setter Property="Foreground" Value="White"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <Style x:Key="FlatCard" TargetType="Border">
       <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
       <Setter Property="CornerRadius" Value="10"/>
@@ -107,7 +133,6 @@ Add-Type -AssemblyName System.Windows.Forms
       <Setter Property="Margin" Value="0,0,16,16"/>
     </Style>
 
-    <!-- Simple Button -->
     <Style x:Key="SimpleBtn" TargetType="Button">
       <Setter Property="Foreground" Value="White"/>
       <Setter Property="FontSize" Value="13"/>
@@ -152,7 +177,7 @@ Add-Type -AssemblyName System.Windows.Forms
 
           <StackPanel Grid.Row="0" Margin="24,32,24,32">
             <TextBlock Text="SteamShell" FontSize="20" FontWeight="Bold" Foreground="White"/>
-            <TextBlock Text="Utility Environment" FontSize="11" Foreground="{StaticResource TextDim}" Margin="2,2,0,0"/>
+            <TextBlock Text="Management Environment" FontSize="11" Foreground="{StaticResource TextDim}" Margin="2,2,0,0"/>
           </StackPanel>
 
           <StackPanel Grid.Row="1" Margin="14,0">
@@ -163,7 +188,7 @@ Add-Type -AssemblyName System.Windows.Forms
           </StackPanel>
 
           <StackPanel Grid.Row="2" Margin="14,0,14,24">
-             <Button x:Name="btnAbout" Content="&#xE946;" Tag="Help" Style="{StaticResource NavBtn}"/>
+             <Button x:Name="btnAbout" Content="&#xE946;" Tag="Help" Style="{StaticResource SideBtn}"/>
           </StackPanel>
         </Grid>
       </Border>
@@ -172,32 +197,23 @@ Add-Type -AssemblyName System.Windows.Forms
       <Grid Grid.Column="1">
         <Grid.RowDefinitions><RowDefinition Height="46"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
-        <!-- Top Drag Bar -->
         <Grid Grid.Row="0" x:Name="titleBar">
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,4,0">
-            <Button x:Name="btnMin" Content="&#xE921;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource NavBtn}" Height="32" Width="40" Margin="0" BorderThickness="0"/>
-            <Button x:Name="btnClose" Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource NavBtn}" Height="32" Width="40" Foreground="#F85149" Margin="0" BorderThickness="0"/>
+            <Button x:Name="btnMin" Content="&#xE921;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource SideBtn}" Tag="Minimize" Height="32" Width="40" Margin="0"/>
+            <Button x:Name="btnClose" Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource SideBtn}" Tag="Close" Height="32" Width="40" Foreground="#F85149" Margin="0"/>
           </StackPanel>
         </Grid>
 
-        <!-- Dynamic Pages -->
+        <!-- Pages -->
         <Grid Grid.Row="1" Margin="32,8,32,32">
 
-          <!-- Dashboard / Home -->
           <Grid x:Name="pageDashboard">
-            <Grid.RowDefinitions>
-              <RowDefinition Height="Auto"/>
-              <RowDefinition Height="Auto"/>
-              <RowDefinition Height="*"/>
-              <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Text="Home" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,24"/>
-
             <WrapPanel Grid.Row="1">
               <Border Style="{StaticResource FlatCard}" Width="220">
                 <StackPanel>
-                  <TextBlock Text="STEAM STATUS" Foreground="{StaticResource TextDim}" FontSize="10" FontWeight="Bold" Margin="0,0,0,12"/>
+                  <TextBlock Text="STEAM SERVICE" Foreground="{StaticResource TextDim}" FontSize="10" FontWeight="Bold" Margin="0,0,0,12"/>
                   <Border x:Name="bdStatus" Background="#203fb950" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left" BorderThickness="1" BorderBrush="#803fb950">
                      <TextBlock x:Name="statusSteam" Text="ACTIVE" Foreground="#3fb950" FontSize="11" FontWeight="Bold"/>
                   </Border>
@@ -205,20 +221,19 @@ Add-Type -AssemblyName System.Windows.Forms
               </Border>
               <Border Style="{StaticResource FlatCard}" Width="280">
                 <StackPanel>
-                  <TextBlock Text="CURRENT ACCOUNT" Foreground="{StaticResource TextDim}" FontSize="10" FontWeight="Bold" Margin="0,0,0,12"/>
+                  <TextBlock Text="LOGGED PROFILE" Foreground="{StaticResource TextDim}" FontSize="10" FontWeight="Bold" Margin="0,0,0,12"/>
                   <TextBlock x:Name="lblActiveAcc" Text="None" Foreground="White" FontSize="16" FontWeight="SemiBold"/>
                 </StackPanel>
               </Border>
             </WrapPanel>
-
             <Grid Grid.Row="2" Margin="0,8,0,0">
                <Border Background="#010409" CornerRadius="8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                 <Grid>
                   <Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                   <Border Background="{StaticResource PanelBrush}" CornerRadius="8,8,0,0" Padding="16,0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
                     <Grid>
-                      <TextBlock Text="Console Output" VerticalAlignment="Center" Foreground="{StaticResource TextDim}" FontSize="11" FontWeight="SemiBold"/>
-                       <Button x:Name="btnClear" Content="Clear Logs" Style="{StaticResource SimpleBtn}" Height="24" Padding="12,0" FontSize="10" HorizontalAlignment="Right" Margin="0"/>
+                      <TextBlock Text="Event Terminal" VerticalAlignment="Center" Foreground="{StaticResource TextDim}" FontSize="11" FontWeight="SemiBold"/>
+                       <Button x:Name="btnClear" Content="Flush Buffer" Style="{StaticResource SimpleBtn}" Height="24" Padding="12,0" FontSize="10" HorizontalAlignment="Right" Margin="0"/>
                     </Grid>
                   </Border>
                   <ScrollViewer Grid.Row="1" x:Name="svLog" VerticalScrollBarVisibility="Auto">
@@ -227,51 +242,46 @@ Add-Type -AssemblyName System.Windows.Forms
                 </Grid>
               </Border>
             </Grid>
-
             <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,20,0,0">
               <Button x:Name="btnStart" Content="Launch Steam" Background="#238636" BorderThickness="0" Style="{StaticResource SimpleBtn}" Width="140" Margin="0,0,12,0"/>
-              <Button x:Name="btnStop" Content="Close Steam" Style="{StaticResource SimpleBtn}" Width="120"/>
+              <Button x:Name="btnStop" Content="Close Service" Style="{StaticResource SimpleBtn}" Width="120"/>
             </StackPanel>
           </Grid>
 
-          <!-- Accounts Page -->
           <Grid x:Name="pageAccounts" Visibility="Collapsed">
             <StackPanel MaxWidth="500" HorizontalAlignment="Left">
-              <TextBlock Text="Accounts" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,32"/>
+              <TextBlock Text="Account Management" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,32"/>
               <Border Style="{StaticResource FlatCard}" Padding="32">
                 <StackPanel>
-                  <TextBlock Text="Select Account" Foreground="{StaticResource TextDim}" Margin="0,0,0,12"/>
+                  <TextBlock Text="Identified Accounts" Foreground="{StaticResource TextDim}" Margin="0,0,0,12"/>
                   <ComboBox x:Name="cmbAccounts" Background="#010409" Foreground="White" Height="40" Padding="12" FontSize="13"/>
-                  <Button x:Name="btnSwitch" Content="Switch &amp; Restart" Background="#1f6feb" BorderThickness="0" Style="{StaticResource SimpleBtn}" Margin="0,24,0,0" Height="40"/>
+                  <Button x:Name="btnSwitch" Content="Switch Account" Background="#1f6feb" BorderThickness="0" Style="{StaticResource SimpleBtn}" Margin="0,24,0,0" Height="40"/>
                 </StackPanel>
               </Border>
             </StackPanel>
           </Grid>
 
-          <!-- Files Page -->
           <Grid x:Name="pageFiles" Visibility="Collapsed">
             <StackPanel MaxWidth="700" HorizontalAlignment="Left">
               <TextBlock Text="Files" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,32"/>
-              <Button x:Name="btnImport" Content="&#xE8B5; Import Manifest/Scripts" Style="{StaticResource SimpleBtn}" Height="46" HorizontalAlignment="Left" Margin="0,0,0,32"/>
-              
-              <TextBlock Text="Directories" Foreground="{StaticResource TextDim}" FontSize="11" FontWeight="Bold" Margin="0,0,0,16"/>
+              <Button x:Name="btnImport" Content="&#xE8B5; Open File Selector..." Style="{StaticResource SimpleBtn}" Height="46" HorizontalAlignment="Left" Margin="0,0,0,32"/>
+              <TextBlock Text="Storage Locations" Foreground="{StaticResource TextDim}" FontSize="11" FontWeight="Bold" Margin="0,0,0,16"/>
               <WrapPanel>
                  <Button x:Name="btnDepot"  Content="Depot Cache" Style="{StaticResource SimpleBtn}" Margin="0,0,12,12"/>
-                 <Button x:Name="btnLua"    Content="LUA Assets" Style="{StaticResource SimpleBtn}" Margin="0,0,12,12"/>
-                 <Button x:Name="btnConfig" Content="Steam Config" Style="{StaticResource SimpleBtn}" Margin="0,0,12,12"/>
+                 <Button x:Name="btnLua"    Content="LUA assets" Style="{StaticResource SimpleBtn}" Margin="0,0,12,12"/>
+                 <Button x:Name="btnConfig" Content="User Config" Style="{StaticResource SimpleBtn}" Margin="0,0,12,12"/>
               </WrapPanel>
             </StackPanel>
           </Grid>
 
-          <!-- Settings Page -->
           <Grid x:Name="pageSettings" Visibility="Collapsed">
             <StackPanel MaxWidth="500" HorizontalAlignment="Left">
-              <TextBlock Text="Settings" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,32"/>
+              <TextBlock Text="Preferences" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,32"/>
               <Border Style="{StaticResource FlatCard}" Padding="32">
                 <StackPanel>
-                  <CheckBox x:Name="chkBackup" Content="Backup before overwrite" IsChecked="True" Foreground="White" Margin="0,0,0,12"/>
-                  <CheckBox x:Name="chkOnTop" Content="Always on top" Foreground="White" Margin="0,0,0,24"/>
-                  <Button x:Name="btnBrowse" Content="Locate steam.exe" Style="{StaticResource SimpleBtn}"/>
+                  <CheckBox x:Name="chkBackup" Content="Enable automated backups" IsChecked="True" Foreground="White" Margin="0,0,0,12"/>
+                  <CheckBox x:Name="chkOnTop" Content="Keep UI Topmost" Foreground="White" Margin="0,0,0,24"/>
+                  <Button x:Name="btnBrowse" Content="Repair steam.exe Link" Style="{StaticResource SimpleBtn}"/>
                 </StackPanel>
               </Border>
             </StackPanel>
@@ -341,21 +351,23 @@ function Update-Status {
 
 function Update-Accounts {
     $cmbAccounts.Items.Clear(); $script:AccList = @(Get-SteamAccounts)
-    foreach ($a in $script:AccList) { $cmbAccounts.Items.Add("$($a.persona) ($($a.name))") | Out-Null }
+    $script:AccList | ForEach-Object { $cmbAccounts.Items.Add("$($_.persona) ($($_.name))") | Out-Null }
 }
 
 function Import-Files($ps) {
+    if (!$ps) { return }
     $dM = 'C:\Program Files (x86)\Steam\depotcache'; $dL = 'C:\Program Files (x86)\Steam\config\stplug-in'
     if (!(Test-Path $dM)) { New-Item $dM -ItemType Directory -Force | Out-Null }
     if (!(Test-Path $dL)) { New-Item $dL -ItemType Directory -Force | Out-Null }
-    foreach ($p in $ps) {
+    $ps | ForEach-Object {
+        $p = $_
         $ext = [System.IO.Path]::GetExtension($p).ToLower()
         $dst = if ($ext -eq '.manifest') { $dM } elseif ($ext -eq '.lua') { $dL } else { $null }
         if ($dst) {
             $dest = Join-Path $dst ([System.IO.Path]::GetFileName($p))
             if ($chkBackup.IsChecked -and (Test-Path $dest)) { Copy-Item $dest "$dest.bak" -Force }
             Copy-Item -LiteralPath $p -Destination $dest -Force
-            Write-Log "Deployed: $([System.IO.Path]::GetFileName($p))"
+            Write-Log "Imported: $([System.IO.Path]::GetFileName($p))"
         }
     }
 }
@@ -365,18 +377,18 @@ $titleBar.Add_MouseLeftButtonDown({ $w.DragMove() })
 $btnMin.Add_Click({ $w.WindowState = 'Minimized' })
 $btnClose.Add_Click({ $w.Close() })
 $btnStart.Add_Click({ try { Start-Steam; Write-Log "Initializing Steam..." } catch { Write-Log "Error: $($_.Exception.Message)" } })
-$btnStop.Add_Click({ try { Stop-SteamGracefully 12; Write-Log "Closing Steam..." } catch { Write-Log "Error: $($_.Exception.Message)" } })
+$btnStop.Add_Click({ try { Stop-SteamGracefully 12; Write-Log "Siganling shutdown..." } catch { Write-Log "Error: $($_.Exception.Message)" } })
 $btnSwitch.Add_Click({
     if ($cmbAccounts.SelectedIndex -ge 0) {
         $a = $script:AccList[$cmbAccounts.SelectedIndex]
         Set-ItemProperty "HKCU:\Software\Valve\Steam" -Name "AutoLoginUser" -Value $a.name
-        Write-Log "Profile Switch: $($a.name). Restarting..."; Restart-Steam
+        Write-Log "Profile Switch: $($a.name). Rebooting Steam..."; Restart-Steam
     }
 })
 $btnClear.Add_Click({ $txtLog.Text = "" })
 $btnImport.Add_Click({
     $dlg = New-Object System.Windows.Forms.OpenFileDialog; $dlg.Multiselect=$true; $dlg.Filter="Assets|*.manifest;*.lua"
-    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Import-Files $dlg.FileNames; Write-Null }
+    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Import-Files $dlg.FileNames; Write-Log "Batch import complete." }
 })
 $btnAbout.Add_Click({ [System.Windows.MessageBox]::Show("SteamShell v$script:AppVersion","Info",0,64) })
 $chkOnTop.Add_Checked({ $w.Topmost=$true }); $chkOnTop.Add_Unchecked({ $w.Topmost=$false })
@@ -386,7 +398,7 @@ $btnLua.Add_Click({ try { Start-Process 'C:\Program Files (x86)\Steam\config\stp
 $btnConfig.Add_Click({ try { Start-Process 'C:\Program Files (x86)\Steam\config' } catch {} })
 $btnBrowse.Add_Click({
     $dlg = New-Object System.Windows.Forms.OpenFileDialog; $dlg.Filter="steam.exe|steam.exe"
-    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $script:SteamExeOverride=$dlg.FileName; Write-Log "Path Link: $($dlg.FileName)" }
+    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $script:SteamExeOverride=$dlg.FileName; Write-Log "Path Sync: $($dlg.FileName)" }
 })
 
 # DragDrop
@@ -398,5 +410,5 @@ $t = New-Object System.Windows.Threading.DispatcherTimer; $t.Interval=[TimeSpan]
 $t.Add_Tick({ Update-Status }); $t.Start()
 
 # Startup
-Update-Accounts; Update-Status; Write-Log "SteamShell Environment Ready."
+Update-Accounts; Update-Status; Write-Log "Environment v$script:AppVersion Stable."
 $w.ShowDialog() | Out-Null
